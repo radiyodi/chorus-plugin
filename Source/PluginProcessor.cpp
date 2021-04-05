@@ -15,7 +15,7 @@ ChorusPluginAudioProcessor::ChorusPluginAudioProcessor()
      : AudioProcessor (BusesProperties()
                      #if ! JucePlugin_IsMidiEffect
                       #if ! JucePlugin_IsSynth
-                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
+                       .withInput  ("Input",  juce::AudioChannelSet::mono(), true)
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
@@ -93,8 +93,7 @@ void ChorusPluginAudioProcessor::changeProgramName (int index, const juce::Strin
 //==============================================================================
 void ChorusPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
+    delayBuffer.setSize(1,sampleRate*samplesPerBlock); // one channel, 1 second of buffer
 }
 
 void ChorusPluginAudioProcessor::releaseResources()
@@ -118,12 +117,6 @@ bool ChorusPluginAudioProcessor::isBusesLayoutSupported (const BusesLayout& layo
      && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
         return false;
 
-    // This checks if the input layout matches the output layout
-   #if ! JucePlugin_IsSynth
-    if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
-        return false;
-   #endif
-
     return true;
   #endif
 }
@@ -144,18 +137,45 @@ void ChorusPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
+    // processing
+    // only process input channel 0 because mono is assumed
+    int bufferLength = buffer.getNumSamples();
+    int delayBufferLength = delayBuffer.getNumSamples();
 
-        // ..do something to the data...
+    auto* inputData = buffer.getReadPointer(0);
+    auto* outputDataR = buffer.getWritePointer(1);
+    auto* outputDataL = buffer.getWritePointer(0);
+
+    auto* delayInputData = delayBuffer.getReadPointer(0);
+
+    if (delayBufferLength > bufferLength + delayWritePosition) {
+        delayBuffer.copyFromWithRamp(0, delayWritePosition, inputData, bufferLength, 1, 1);
     }
+    else {
+        int remaining = delayBufferLength - delayWritePosition;
+        delayBuffer.copyFromWithRamp(0, delayWritePosition, inputData, remaining, 1, 1);
+        delayBuffer.copyFromWithRamp(0, 0, inputData, bufferLength - remaining, 1, 1);
+    }
+
+    // now output the delayed signal
+
+    int delayOffset = 10;
+    int sampleRate = getSampleRate();
+    int readPosition = (delayBufferLength + delayWritePosition - (sampleRate*delayOffset/1000)) % delayBufferLength;
+
+    if (delayBufferLength > bufferLength + readPosition) {
+        buffer.addFrom(1, 0, delayInputData + readPosition, bufferLength);
+    }
+    else {
+        int remaining = delayBufferLength - readPosition;
+        buffer.addFrom(1, 0, delayInputData + readPosition, remaining);
+        buffer.addFrom(1, remaining, delayInputData, bufferLength - remaining);
+    }
+
+
+    // ----------------------------------
+    delayWritePosition += bufferLength;
+    delayWritePosition %= delayBufferLength;
 }
 
 //==============================================================================
