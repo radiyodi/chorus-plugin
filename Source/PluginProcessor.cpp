@@ -94,6 +94,15 @@ void ChorusPluginAudioProcessor::changeProgramName (int index, const juce::Strin
 void ChorusPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     delayBuffer.setSize(1,sampleRate*samplesPerBlock); // one channel, 1 second of buffer
+    pitchShiftBuffer.setSize(1,sampleRate*samplesPerBlock);
+
+    // create rubberbandstretcher object
+    // Uses hard coded number of output channels to be 1 as we only affect one buffer
+    rbs = std::make_unique<RubberBand::RubberBandStretcher>(sampleRate, 1, rbsOptions, rbsDefaultTimeRatio, rbsDefaultPitchScale);
+    // rbs = std::make_unique<RubberBand::RubberBandStretcher>(sampleRate, 1);
+
+    // clear internal buffers for rbs object
+    rbs->reset();
 }
 
 void ChorusPluginAudioProcessor::releaseResources()
@@ -147,6 +156,8 @@ void ChorusPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     auto* outputDataL = buffer.getWritePointer(0);
 
     auto* delayInputData = delayBuffer.getReadPointer(0);
+    auto* pitchShiftInputData = pitchShiftBuffer.getWritePointer(0); // rbs will write to here
+    auto* pitchShiftOutputData = pitchShiftBuffer.getReadPointer(0); // then plugin will retrieve from here
 
     if (delayBufferLength > bufferLength + delayWritePosition) {
         delayBuffer.copyFromWithRamp(0, delayWritePosition, inputData, bufferLength, 1, 1);
@@ -159,17 +170,34 @@ void ChorusPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     // now output the delayed signal
 
-    int delayOffset = 10;
+    int delayOffset = 0;
     int sampleRate = getSampleRate();
     int readPosition = (delayBufferLength + delayWritePosition - (sampleRate*delayOffset/1000)) % delayBufferLength;
 
+    auto* new_pos = delayInputData + readPosition;
+    const float* const* rbsInput = &new_pos;
+    float* const* rbsOutput = &pitchShiftInputData;
+
     if (delayBufferLength > bufferLength + readPosition) {
-        buffer.addFrom(1, 0, delayInputData + readPosition, bufferLength);
+        // send data from delay buffer to rbs to process
+        rbs->process(rbsInput, bufferLength, false);
+        
+        // retrieve pitch shifted samples into pitchShiftBuffer
+        size_t numSamplesStretched = rbs->retrieve(rbsOutput, bufferLength);
+
+        // output samples from pitchShiftBuffer
+        buffer.addFrom(1, 0, pitchShiftOutputData, numSamplesStretched);
     }
     else {
         int remaining = delayBufferLength - readPosition;
-        buffer.addFrom(1, 0, delayInputData + readPosition, remaining);
-        buffer.addFrom(1, remaining, delayInputData, bufferLength - remaining);
+
+        rbs->process(rbsInput, remaining, false);
+        size_t numSamplesStretched = rbs->retrieve(rbsOutput, bufferLength);
+        buffer.addFrom(1, 0, pitchShiftOutputData, numSamplesStretched);
+
+        rbs->process(rbsInput, bufferLength - remaining, false);
+        numSamplesStretched = rbs->retrieve(rbsOutput, bufferLength);
+        buffer.addFrom(1, remaining, delayInputData, numSamplesStretched);
     }
 
 

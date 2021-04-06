@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <rubberband/RubberBandStretcher.h>
 #include <JuceHeader.h>
 
 //==============================================================================
@@ -55,7 +56,16 @@ public:
 
 private:
     juce::AudioBuffer<float> delayBuffer;
+    juce::AudioBuffer<float> pitchShiftBuffer;
     int delayWritePosition{ 0 };
+
+    // Realtime processing for plugins, all other options are default
+    const int rbsOptions = RubberBand::RubberBandStretcher::Option::OptionProcessRealTime;
+
+    const double rbsDefaultTimeRatio = 1.0;
+    const double rbsDefaultPitchScale = 1.005792941; // TODO: change this to suitable default pitch shift
+
+    std::unique_ptr<RubberBand::RubberBandStretcher> rbs;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ChorusPluginAudioProcessor)
 };
