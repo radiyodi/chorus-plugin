@@ -174,16 +174,14 @@ void ChorusPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     int sampleRate = getSampleRate();
     int readPosition = (delayBufferLength + delayWritePosition - (sampleRate*delayOffset/1000)) % delayBufferLength;
 
-    auto* new_pos = delayInputData + readPosition;
-    const float* const* rbsInput = &new_pos;
-    float* const* rbsOutput = &pitchShiftInputData;
+    auto* offsetDelayInputData = delayInputData + readPosition;
 
     if (delayBufferLength > bufferLength + readPosition) {
         // send data from delay buffer to rbs to process
-        rbs->process(rbsInput, bufferLength, false);
+        rbs->process(&offsetDelayInputData, bufferLength, false);
         
         // retrieve pitch shifted samples into pitchShiftBuffer
-        size_t numSamplesStretched = rbs->retrieve(rbsOutput, bufferLength);
+        size_t numSamplesStretched = rbs->retrieve(&pitchShiftInputData, bufferLength);
 
         // output samples from pitchShiftBuffer
         buffer.addFrom(1, 0, pitchShiftOutputData, numSamplesStretched);
@@ -191,13 +189,15 @@ void ChorusPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     else {
         int remaining = delayBufferLength - readPosition;
 
-        rbs->process(rbsInput, remaining, false);
-        size_t numSamplesStretched = rbs->retrieve(rbsOutput, bufferLength);
+        rbs->process(&offsetDelayInputData, remaining, false);
+        size_t numSamplesStretched = rbs->retrieve(&pitchShiftInputData, remaining);
         buffer.addFrom(1, 0, pitchShiftOutputData, numSamplesStretched);
 
-        rbs->process(rbsInput, bufferLength - remaining, false);
-        numSamplesStretched = rbs->retrieve(rbsOutput, bufferLength);
-        buffer.addFrom(1, remaining, delayInputData, numSamplesStretched);
+        auto remainingDelayInputData = offsetDelayInputData + remaining;
+
+        rbs->process(&remainingDelayInputData, bufferLength - remaining, false);
+        numSamplesStretched = rbs->retrieve(&pitchShiftInputData, bufferLength - remaining);
+        buffer.addFrom(1, remaining, pitchShiftOutputData, numSamplesStretched);
     }
 
 

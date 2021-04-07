@@ -63,7 +63,7 @@ private:
     const int rbsOptions = RubberBand::RubberBandStretcher::Option::OptionProcessRealTime;
 
     const double rbsDefaultTimeRatio = 1.0;
-    const double rbsDefaultPitchScale = 1.005792941; // TODO: change this to suitable default pitch shift
+    const double rbsDefaultPitchScale = 1.0116; // 1.005792941; // TODO: change this to suitable default pitch shift
 
     std::unique_ptr<RubberBand::RubberBandStretcher> rbs;
     //==============================================================================
