@@ -56,14 +56,20 @@ public:
 
 private:
     juce::AudioBuffer<float> delayBuffer;
+    juce::AudioBuffer<float> dryBuffer;
     juce::AudioBuffer<float> pitchShiftBuffer;
     int delayWritePosition{ 0 };
+    int dryWritePosition{ 0 };
 
     // Realtime processing for plugins, all other options are default
-    const int rbsOptions = RubberBand::RubberBandStretcher::Option::OptionProcessRealTime;
+    const int rbsOptions = RubberBand::RubberBandStretcher::Option::OptionProcessRealTime
+                        + RubberBand::RubberBandStretcher::Option::OptionPitchHighConsistency;
 
     const double rbsDefaultTimeRatio = 1.0;
-    const double rbsDefaultPitchScale = 1.0116; // 1.005792941; // TODO: change this to suitable default pitch shift
+    //const double rbsDefaultPitchScale = 1.0116; // 1.005792941; // TODO: change this to suitable default pitch shift
+    const double rbsDefaultPitchScale = 1;
+
+    int rbDelay;
 
     std::unique_ptr<RubberBand::RubberBandStretcher> rbs;
     //==============================================================================

@@ -93,7 +93,8 @@ void ChorusPluginAudioProcessor::changeProgramName (int index, const juce::Strin
 //==============================================================================
 void ChorusPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    delayBuffer.setSize(1,sampleRate*samplesPerBlock); // one channel, 1 second of buffer
+    delayBuffer.setSize(1,sampleRate*samplesPerBlock);
+    dryBuffer.setSize(1,sampleRate*samplesPerBlock);
     pitchShiftBuffer.setSize(1,sampleRate*samplesPerBlock);
 
     // create rubberbandstretcher object
@@ -103,6 +104,9 @@ void ChorusPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPe
 
     // clear internal buffers for rbs object
     rbs->reset();
+
+    rbDelay = rbs->getLatency();
+    DBG(rbDelay);
 }
 
 void ChorusPluginAudioProcessor::releaseResources()
@@ -150,12 +154,14 @@ void ChorusPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // only process input channel 0 because mono is assumed
     int bufferLength = buffer.getNumSamples();
     int delayBufferLength = delayBuffer.getNumSamples();
+    int dryBufferLength = dryBuffer.getNumSamples();
 
     auto* inputData = buffer.getReadPointer(0);
     auto* outputDataR = buffer.getWritePointer(1);
     auto* outputDataL = buffer.getWritePointer(0);
 
     auto* delayInputData = delayBuffer.getReadPointer(0);
+    auto* dryInputData = dryBuffer.getReadPointer(0);
     auto* pitchShiftInputData = pitchShiftBuffer.getWritePointer(0); // rbs will write to here
     auto* pitchShiftOutputData = pitchShiftBuffer.getReadPointer(0); // then plugin will retrieve from here
 
@@ -168,13 +174,26 @@ void ChorusPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         delayBuffer.copyFromWithRamp(0, 0, inputData, bufferLength - remaining, 1, 1);
     }
 
+    if (dryBufferLength > bufferLength + dryWritePosition) {
+        dryBuffer.copyFromWithRamp(0, dryWritePosition, inputData, bufferLength, 1, 1);
+    }
+    else {
+        int remaining = dryBufferLength - dryWritePosition;
+        dryBuffer.copyFromWithRamp(0, dryWritePosition, inputData, remaining, 1, 1);
+        dryBuffer.copyFromWithRamp(0, 0, inputData, bufferLength - remaining, 1, 1);
+    }
+
     // now output the delayed signal
 
     int delayOffset = 0;
+    int dryOffset = 0;
     int sampleRate = getSampleRate();
     int readPosition = (delayBufferLength + delayWritePosition - (sampleRate*delayOffset/1000)) % delayBufferLength;
+    int dryReadPosition = (dryBufferLength + dryWritePosition - (sampleRate*dryOffset/1000)) % dryBufferLength;
 
     auto* offsetDelayInputData = delayInputData + readPosition;
+
+    //DBG(rbDelay);
 
     if (delayBufferLength > bufferLength + readPosition) {
         // send data from delay buffer to rbs to process
@@ -200,10 +219,20 @@ void ChorusPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         buffer.addFrom(1, remaining, pitchShiftOutputData, numSamplesStretched);
     }
 
+    if (dryBufferLength > bufferLength + dryReadPosition) {
+        buffer.copyFrom(0, 0, dryInputData + dryReadPosition, bufferLength);
+    }
+    else {
+        int remaining = dryBufferLength - dryReadPosition;
+        buffer.copyFrom(0, 0, dryInputData + dryReadPosition, remaining);
+        buffer.copyFrom(0, remaining, dryInputData, bufferLength - remaining);
+    }
 
     // ----------------------------------
     delayWritePosition += bufferLength;
     delayWritePosition %= delayBufferLength;
+    dryWritePosition += bufferLength;
+    dryWritePosition %= dryBufferLength;
 }
 
 //==============================================================================
