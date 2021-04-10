@@ -15,7 +15,7 @@ ChorusPluginAudioProcessorEditor::ChorusPluginAudioProcessorEditor (ChorusPlugin
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (400, 150);
+    setSize (400, 220);
 
     addAndMakeVisible(delaySlider);
     delaySlider.setRange(0, 100, 1);
@@ -36,6 +36,26 @@ ChorusPluginAudioProcessorEditor::ChorusPluginAudioProcessorEditor (ChorusPlugin
     addAndMakeVisible(pitchLabel);
     pitchLabel.setText("Pitch", juce::NotificationType::sendNotification);
     pitchLabel.attachToComponent(&pitchSlider, true);
+
+    addAndMakeVisible(pitchLfoFreqSlider);
+    pitchLfoFreqSlider.setRange(0, 10, 0.1);
+    pitchLfoFreqSlider.setTextValueSuffix(" Hz");
+    pitchLfoFreqSlider.addListener(this);
+    pitchLfoFreqSlider.setValue(1);
+
+    addAndMakeVisible(pitchLfoFreqLabel);
+    pitchLfoFreqLabel.setText("Pitch LFO Frequency", juce::NotificationType::sendNotification);
+    pitchLfoFreqLabel.attachToComponent(&pitchLfoFreqSlider, true);
+
+    addAndMakeVisible(pitchLfoDepthSlider);
+    pitchLfoDepthSlider.setRange(0, 25, 1);
+    pitchLfoDepthSlider.setTextValueSuffix(" cents");
+    pitchLfoDepthSlider.addListener(this);
+    pitchLfoDepthSlider.setValue(10);
+
+    addAndMakeVisible(pitchLfoDepthLabel);
+    pitchLfoDepthLabel.setText("Pitch LFO Depth", juce::NotificationType::sendNotification);
+    pitchLfoDepthLabel.attachToComponent(&pitchLfoDepthSlider, true);
 }
 
 ChorusPluginAudioProcessorEditor::~ChorusPluginAudioProcessorEditor()
@@ -61,6 +81,8 @@ void ChorusPluginAudioProcessorEditor::resized()
     // subcomponents in your editor..
     delaySlider.setBounds(75,25, 300,50);
     pitchSlider.setBounds(75,62, 300, 50);
+    pitchLfoFreqSlider.setBounds(75,99,300,50);
+    pitchLfoDepthSlider.setBounds(75,136,300,50);
 }
 
 void ChorusPluginAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
@@ -74,5 +96,9 @@ void ChorusPluginAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
         double pitchValue = pitchSlider.getValue();
         //DBG(pitchValue);
         audioProcessor.pitchCents = pitchValue;
+    }
+    else if (slider == &pitchLfoFreqSlider) {
+        float pitchLfoFreqValue = pitchLfoFreqSlider.getValue();
+        audioProcessor.pitchLfoFreq = pitchLfoFreqValue;
     }
 }

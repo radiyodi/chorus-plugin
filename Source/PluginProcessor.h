@@ -59,12 +59,19 @@ public:
     int delayOffset = 0;
     int pitchCents = 5;
 
+    float pitchLfoFreq = 1.0; // Hz
+    int pitchLfoDepth = 10;
+
 private:
     juce::AudioBuffer<float> delayBuffer;
     juce::AudioBuffer<float> dryBuffer;
     juce::AudioBuffer<float> pitchShiftBuffer;    
     int delayWritePosition{ 0 };
     int dryWritePosition{ 0 };
+
+    // LFOs
+    const int lfoUpdateRate = 100; // we do not need to update the lfo as frequently, update every sampleRate/lfoUpdateRate samples
+    juce::dsp::Oscillator<float> pitchLfo;
 
     // Realtime processing for plugins, all other options are default
     const int rbsOptions = RubberBand::RubberBandStretcher::Option::OptionProcessRealTime

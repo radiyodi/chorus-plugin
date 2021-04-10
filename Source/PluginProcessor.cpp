@@ -97,6 +97,11 @@ void ChorusPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPe
     dryBuffer.setSize(1,sampleRate*samplesPerBlock);
     pitchShiftBuffer.setSize(1,sampleRate*samplesPerBlock);
 
+    // initialize LFO objects
+    juce::dsp::ProcessSpec pitchLfoSpec = { sampleRate / lfoUpdateRate, samplesPerBlock, 1 };
+    pitchLfo.prepare(pitchLfoSpec);
+    pitchLfo.initialise([](float x) {return std::sin(x); }, 128);
+
     // create rubberbandstretcher object
     // Uses hard coded number of output channels to be 1 as we only affect one buffer
     rbs = std::make_unique<RubberBand::RubberBandStretcher>(sampleRate, 1, rbsOptions, rbsDefaultTimeRatio, rbsDefaultPitchScale);
@@ -137,6 +142,7 @@ bool ChorusPluginAudioProcessor::isBusesLayoutSupported (const BusesLayout& layo
 #endif
 
 int ChorusPluginAudioProcessor::getLatency() {
+    return 4000;
     if (rbs->getPitchScale() == 1.0) {
         return 2115;
     }
@@ -210,7 +216,12 @@ void ChorusPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     auto* offsetDelayInputData = delayInputData + readPosition;
 
-    double rbsCurrPitchScale = pow(2.0, pitchCents / 1200.0);
+    pitchLfo.setFrequency(pitchLfoFreq);
+
+    auto pitchLfoOut = pitchLfo.processSample(0.0f);
+    int pitchLfoCents = pitchLfoOut * pitchLfoDepth;
+
+    double rbsCurrPitchScale = pow(2.0, (pitchCents + pitchLfoCents) / 1200.0);
 
     rbs->setPitchScale(rbsCurrPitchScale);
 
@@ -221,6 +232,10 @@ void ChorusPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         // retrieve pitch shifted samples into pitchShiftBuffer
         size_t numSamplesStretched = rbs->retrieve(&pitchShiftInputData, bufferLength);
 
+        if (numSamplesStretched < bufferLength) {
+            DBG("Dropping " << bufferLength - numSamplesStretched << " samples");
+        }
+
         // output samples from pitchShiftBuffer
         buffer.addFrom(1, 0, pitchShiftOutputData, numSamplesStretched);
     }
@@ -229,12 +244,18 @@ void ChorusPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
         rbs->process(&offsetDelayInputData, remaining, false);
         size_t numSamplesStretched = rbs->retrieve(&pitchShiftInputData, remaining);
+        if (numSamplesStretched < bufferLength) {
+            DBG("Dropping " << bufferLength - numSamplesStretched << " samples");
+        }
         buffer.addFrom(1, 0, pitchShiftOutputData, numSamplesStretched);
 
         auto remainingDelayInputData = offsetDelayInputData + remaining;
 
         rbs->process(&remainingDelayInputData, bufferLength - remaining, false);
         numSamplesStretched = rbs->retrieve(&pitchShiftInputData, bufferLength - remaining);
+        if (numSamplesStretched < bufferLength) {
+            DBG("Dropping " << bufferLength - numSamplesStretched << " samples");
+        }
         buffer.addFrom(1, remaining, pitchShiftOutputData, numSamplesStretched);
     }
 

@@ -34,6 +34,10 @@ private:
     juce::Label delayLabel;
     juce::Slider pitchSlider;
     juce::Label pitchLabel;
+    juce::Slider pitchLfoFreqSlider;
+    juce::Label pitchLfoFreqLabel;
+    juce::Slider pitchLfoDepthSlider;
+    juce::Label pitchLfoDepthLabel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ChorusPluginAudioProcessorEditor)
 };
