@@ -29,7 +29,7 @@ public:
     bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
    #endif
 
-    int getDelay();
+    int getLatency();
 
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 

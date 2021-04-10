@@ -136,8 +136,11 @@ bool ChorusPluginAudioProcessor::isBusesLayoutSupported (const BusesLayout& layo
 }
 #endif
 
-int ChorusPluginAudioProcessor::getDelay() {
-    if (rbs->getPitchScale() > 1.0) {
+int ChorusPluginAudioProcessor::getLatency() {
+    if (rbs->getPitchScale() == 1.0) {
+        return 2115;
+    }
+    else if (rbs->getPitchScale() > 1.0) {
         return 3900;
     }
     else {
@@ -203,7 +206,7 @@ void ChorusPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     int dryOffset = 0;
     int readPosition = (delayBufferLength + delayWritePosition - (sampleRate*delayOffset/1000)) % delayBufferLength;
     //int dryReadPosition = (dryBufferLength + dryWritePosition - (sampleRate*dryOffset/1000)) % dryBufferLength;
-    int dryReadPosition = (dryBufferLength + dryWritePosition - getDelay()) % dryBufferLength;
+    int dryReadPosition = (dryBufferLength + dryWritePosition - getLatency()) % dryBufferLength;
 
     auto* offsetDelayInputData = delayInputData + readPosition;
 
