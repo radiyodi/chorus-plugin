@@ -56,10 +56,13 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    int delayOffset = 0;
+    int pitchCents = 5;
+
 private:
     juce::AudioBuffer<float> delayBuffer;
     juce::AudioBuffer<float> dryBuffer;
-    juce::AudioBuffer<float> pitchShiftBuffer;
+    juce::AudioBuffer<float> pitchShiftBuffer;    
     int delayWritePosition{ 0 };
     int dryWritePosition{ 0 };
 
@@ -68,12 +71,12 @@ private:
                         + RubberBand::RubberBandStretcher::Option::OptionPitchHighConsistency;
 
     const double rbsDefaultTimeRatio = 1.0;
-    const double rbsDefaultPitchScale = pow(2.0, 43.2/1200.0); // 1.005792941; // TODO: change this to suitable default pitch shift
-    //const double rbsDefaultPitchScale = 1;
+    //const double rbsDefaultPitchScale = pow(2.0, 10/1200.0); // 1.005792941; // TODO: change this to suitable default pitch shift
+    const double rbsDefaultPitchScale = 1.0;
 
     int rbDelay;
 
-    std::unique_ptr<RubberBand::RubberBandStretcher> rbs;
+    std::unique_ptr<RubberBand::RubberBandStretcher> rbs;    
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ChorusPluginAudioProcessor)
 };

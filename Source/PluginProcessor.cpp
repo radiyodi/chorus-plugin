@@ -202,13 +202,17 @@ void ChorusPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     //DBG(rbDelay);
 
     int sampleRate = getSampleRate();
-    int delayOffset = 0;
+    //int delayOffset = 0;
     int dryOffset = 0;
     int readPosition = (delayBufferLength + delayWritePosition - (sampleRate*delayOffset/1000)) % delayBufferLength;
     //int dryReadPosition = (dryBufferLength + dryWritePosition - (sampleRate*dryOffset/1000)) % dryBufferLength;
     int dryReadPosition = (dryBufferLength + dryWritePosition - getLatency()) % dryBufferLength;
 
     auto* offsetDelayInputData = delayInputData + readPosition;
+
+    double rbsCurrPitchScale = pow(2.0, pitchCents / 1200.0);
+
+    rbs->setPitchScale(rbsCurrPitchScale);
 
     if (delayBufferLength > bufferLength + readPosition) {
         // send data from delay buffer to rbs to process
