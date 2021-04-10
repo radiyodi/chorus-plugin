@@ -29,6 +29,8 @@ public:
     bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
    #endif
 
+    int getDelay();
+
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
     //==============================================================================
@@ -66,8 +68,8 @@ private:
                         + RubberBand::RubberBandStretcher::Option::OptionPitchHighConsistency;
 
     const double rbsDefaultTimeRatio = 1.0;
-    //const double rbsDefaultPitchScale = 1.0116; // 1.005792941; // TODO: change this to suitable default pitch shift
-    const double rbsDefaultPitchScale = 1;
+    const double rbsDefaultPitchScale = pow(2.0, 43.2/1200.0); // 1.005792941; // TODO: change this to suitable default pitch shift
+    //const double rbsDefaultPitchScale = 1;
 
     int rbDelay;
 

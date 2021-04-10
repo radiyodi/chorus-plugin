@@ -107,6 +107,7 @@ void ChorusPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPe
 
     rbDelay = rbs->getLatency();
     DBG(rbDelay);
+    DBG(rbs->getPitchScale());
 }
 
 void ChorusPluginAudioProcessor::releaseResources()
@@ -134,6 +135,15 @@ bool ChorusPluginAudioProcessor::isBusesLayoutSupported (const BusesLayout& layo
   #endif
 }
 #endif
+
+int ChorusPluginAudioProcessor::getDelay() {
+    if (rbs->getPitchScale() > 1.0) {
+        return 3900;
+    }
+    else {
+        return 2115;
+    }
+}
 
 void ChorusPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
@@ -185,15 +195,17 @@ void ChorusPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     // now output the delayed signal
 
+    //rbDelay = rbs->getLatency();
+    //DBG(rbDelay);
+
+    int sampleRate = getSampleRate();
     int delayOffset = 0;
     int dryOffset = 0;
-    int sampleRate = getSampleRate();
     int readPosition = (delayBufferLength + delayWritePosition - (sampleRate*delayOffset/1000)) % delayBufferLength;
-    int dryReadPosition = (dryBufferLength + dryWritePosition - (sampleRate*dryOffset/1000)) % dryBufferLength;
+    //int dryReadPosition = (dryBufferLength + dryWritePosition - (sampleRate*dryOffset/1000)) % dryBufferLength;
+    int dryReadPosition = (dryBufferLength + dryWritePosition - getDelay()) % dryBufferLength;
 
     auto* offsetDelayInputData = delayInputData + readPosition;
-
-    //DBG(rbDelay);
 
     if (delayBufferLength > bufferLength + readPosition) {
         // send data from delay buffer to rbs to process
