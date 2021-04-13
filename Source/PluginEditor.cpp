@@ -101,4 +101,8 @@ void ChorusPluginAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
         float pitchLfoFreqValue = pitchLfoFreqSlider.getValue();
         audioProcessor.pitchLfoFreq = pitchLfoFreqValue;
     }
+    else if (slider == &pitchLfoDepthSlider) {
+        float pitchLfoDepthValue = pitchLfoDepthSlider.getValue();
+        audioProcessor.pitchLfoDepth = pitchLfoDepthValue;
+    }
 }
