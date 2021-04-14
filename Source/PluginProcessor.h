@@ -57,6 +57,7 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     int delayOffset = 0;
+    int dryOffset = 0;
     int pitchCents = 5;
 
     float pitchLfoFreq = 1.0; // Hz

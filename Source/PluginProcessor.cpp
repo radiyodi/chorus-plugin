@@ -209,10 +209,10 @@ void ChorusPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
 
     int sampleRate = getSampleRate();
     //int delayOffset = 0;
-    int dryOffset = 0;
+    //int dryOffset = 0;
     int readPosition = (delayBufferLength + delayWritePosition - (sampleRate*delayOffset/1000)) % delayBufferLength;
-    //int dryReadPosition = (dryBufferLength + dryWritePosition - (sampleRate*dryOffset/1000)) % dryBufferLength;
-    int dryReadPosition = (dryBufferLength + dryWritePosition - getLatency()) % dryBufferLength;
+    int dryReadPosition = (dryBufferLength + dryWritePosition - (sampleRate*dryOffset/1000)) % dryBufferLength;
+    //int dryReadPosition = (dryBufferLength + dryWritePosition - getLatency()) % dryBufferLength;
 
     auto* offsetDelayInputData = delayInputData + readPosition;
 

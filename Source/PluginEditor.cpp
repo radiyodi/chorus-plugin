@@ -18,7 +18,7 @@ ChorusPluginAudioProcessorEditor::ChorusPluginAudioProcessorEditor (ChorusPlugin
     setSize (400, 220);
 
     addAndMakeVisible(delaySlider);
-    delaySlider.setRange(0, 100, 1);
+    delaySlider.setRange(-200, 200, 1);
     delaySlider.setTextValueSuffix(" ms");
     delaySlider.addListener(this);
     delaySlider.setValue(0);
@@ -48,7 +48,7 @@ ChorusPluginAudioProcessorEditor::ChorusPluginAudioProcessorEditor (ChorusPlugin
     pitchLfoFreqLabel.attachToComponent(&pitchLfoFreqSlider, true);
 
     addAndMakeVisible(pitchLfoDepthSlider);
-    pitchLfoDepthSlider.setRange(0, 25, 1);
+    pitchLfoDepthSlider.setRange(0, 100, 1);
     pitchLfoDepthSlider.setTextValueSuffix(" cents");
     pitchLfoDepthSlider.addListener(this);
     pitchLfoDepthSlider.setValue(10);
@@ -90,7 +90,14 @@ void ChorusPluginAudioProcessorEditor::sliderValueChanged(juce::Slider* slider)
     if (slider == &delaySlider) {
         double delayValue = delaySlider.getValue();
         //DBG(delayValue);
-        audioProcessor.delayOffset = delayValue;
+        if (delayValue <= 0) {
+            audioProcessor.dryOffset = -1 * delayValue;
+            audioProcessor.delayOffset = 0;
+        }
+        else {
+            audioProcessor.dryOffset = 0;
+            audioProcessor.delayOffset = delayValue;
+        }
     }
     else if (slider == &pitchSlider) {
         double pitchValue = pitchSlider.getValue();
