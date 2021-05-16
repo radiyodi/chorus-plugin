@@ -1,4 +1,14 @@
-## Installing Rubberband
+## Chorus Plugin
+A chorus effect VST project that builds a working `.vst3` file for use with most digital audio workstations. It was developed using the JUCE C++ framework and processes audio in real-time.
+
+[Video Demonstration](https://youtu.be/j42mkOdNKBg)
+
+![User interface](Images/ui.png)
+
+The effect is achieved using a circular buffer for delay, and an LFO for pitch modulation.
+
+## Installing Rubber Band
+This project requires the rubberband pitch-shifting library to be built locally and linked to the project. The steps are as follows:
 1. Clone the rubberband repo. Assuming this is cloned to `C:\Downloads`
 ```
 git@github.com:breakfastquay/rubberband.git
